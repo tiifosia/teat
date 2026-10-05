@@ -8,11 +8,38 @@ const historyList = document.getElementById('historyList');
 const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 const presetButtons = document.querySelectorAll('.preset-btn');
 const displaySection = document.querySelector('.display-section');
+const themeToggleBtn = document.getElementById('themeToggleBtn');
+const themeIcon = themeToggleBtn.querySelector('.theme-icon');
+const themeLabel = themeToggleBtn.querySelector('.theme-label');
 
 let history = [];
 let isGenerating = false;
 
-// Web Audio API를 활용한 효과음 (외부 파일 없이 직접 합성음 생성)
+// 1. 테마 관리 (기본: 다크 모드)
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('teat-theme', theme);
+
+  if (theme === 'dark') {
+    themeIcon.textContent = '🌙';
+    themeLabel.textContent = '다크 모드';
+  } else {
+    themeIcon.textContent = '☀️';
+    themeLabel.textContent = '라이트 모드';
+  }
+}
+
+// 저장된 테마 불러오기 (기본값 dark)
+const savedTheme = localStorage.getItem('teat-theme') || 'dark';
+applyTheme(savedTheme);
+
+themeToggleBtn.addEventListener('click', () => {
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  applyTheme(newTheme);
+});
+
+// 2. Web Audio API를 활용한 효과음
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playSound(type) {
@@ -27,31 +54,31 @@ function playSound(type) {
 
     if (type === 'tick') {
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(350, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(320, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.035, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.05);
     } else if (type === 'success') {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-      osc.frequency.exponentialRampToValueAtTime(783.99, audioCtx.currentTime + 0.15); // G5
+      osc.frequency.exponentialRampToValueAtTime(880.00, audioCtx.currentTime + 0.18); // A5
       gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.28);
       osc.start();
-      osc.stop(audioCtx.currentTime + 0.25);
+      osc.stop(audioCtx.currentTime + 0.28);
     }
   } catch (e) {
     // 오디오 미지원 환경 예외 무시
   }
 }
 
-// 랜덤 정수 생성
+// 3. 랜덤 정수 생성
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// 숫자 롤링 애니메이션 생성 로직
+// 4. 번호 생성 로직
 function generateNumber() {
   if (isGenerating) return;
 
@@ -74,7 +101,7 @@ function generateNumber() {
   copyBtn.style.display = 'none';
 
   const finalNumber = getRandomInt(min, max);
-  const duration = 600; // 0.6초 롤링
+  const duration = 600;
   const startTime = Date.now();
 
   const rollInterval = setInterval(() => {
@@ -87,7 +114,7 @@ function generateNumber() {
       numberDisplay.textContent = finalNumber;
       playSound('success');
 
-      // 팝 애니메이션
+      // 팝업 애니메이션
       numberDisplay.classList.remove('pop');
       void numberDisplay.offsetWidth; // reflow
       numberDisplay.classList.add('pop');
@@ -106,14 +133,13 @@ function generateNumber() {
   }, 40);
 }
 
-// 히스토리 추가
+// 5. 히스토리 관리
 function addToHistory(num) {
   history.unshift(num);
   if (history.length > 20) history.pop();
   renderHistory();
 }
 
-// 히스토리 렌더링
 function renderHistory() {
   if (history.length === 0) {
     historyList.innerHTML = '<p class="empty-history">아직 생성된 숫자가 없습니다.</p>';
@@ -125,7 +151,7 @@ function renderHistory() {
     .join('');
 }
 
-// 복사 기능
+// 6. 클립보드 복사
 copyBtn.addEventListener('click', () => {
   const currentNum = numberDisplay.textContent;
   if (!currentNum || currentNum === '?') return;
@@ -140,7 +166,7 @@ copyBtn.addEventListener('click', () => {
   });
 });
 
-// 프리셋 버튼 이벤트
+// 7. 프리셋 클릭
 presetButtons.forEach(btn => {
   btn.addEventListener('click', () => {
     minInput.value = btn.dataset.min;
@@ -155,7 +181,7 @@ clearHistoryBtn.addEventListener('click', () => {
   renderHistory();
 });
 
-// 스페이스바나 엔터 키로도 생성 가능하게 지원
+// 스페이스바 단축키 지원
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && e.target === document.body) {
     e.preventDefault();
